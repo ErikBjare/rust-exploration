@@ -1,0 +1,10 @@
+[package]
+name = "ffi-test"
+version = "0.1.0"
+authors = ["Erik Bjäreholt <erik.bjareholt@gmail.com>"]
+
+[lib]
+name = "ffitest"
+crate-type = ["dylib"]
+
+[dependencies]
