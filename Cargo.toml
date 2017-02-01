@@ -8,3 +8,5 @@ name = "ffitest"
 crate-type = ["dylib"]
 
 [dependencies]
+libc = "0.2.0"
+nalgebra = "0.10.*"
