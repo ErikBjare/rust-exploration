@@ -5,8 +5,15 @@ authors = ["Erik Bjäreholt <erik.bjareholt@gmail.com>"]
 
 [lib]
 name = "ffitest"
-crate-type = ["dylib"]
+crate-type = ["rlib", "dylib"]
+
+[[bin]]
+name = "ffitest-main"
+path = "src/main.rs"
 
 [dependencies]
 libc = "0.2.0"
+rand = "0.3"
 nalgebra = "0.10.*"
+piston_window = "0.61.0"
+itertools = "0.5.9"
