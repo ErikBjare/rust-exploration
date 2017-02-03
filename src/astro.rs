@@ -22,7 +22,7 @@ impl RigidBody {
     }
 
     pub fn apply_force(&mut self, force: Vector2<f32>) {
-        self.velocity += force * self.mass;
+        self.velocity += 0.001 * force / self.mass;
     }
 }
 
@@ -31,13 +31,15 @@ impl RigidBody {
 pub struct Ball {
     pub rigidbody: RigidBody,
     pub radius: f32,
+    pub color: [f32; 4]
 }
 
 impl Ball {
     pub fn new(mass: f32, radius: f32) -> Ball {
         return Ball {
             rigidbody: RigidBody::new(mass),
-            radius: radius
+            radius: radius,
+            color: [1.0, 1.0, 1.0, 0.5]
         };
     }
 }
