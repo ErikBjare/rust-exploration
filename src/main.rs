@@ -57,10 +57,17 @@ fn main() {
     let matches = App::new("gravitysim")
                       .version("0.1")
                       .about("A simple gravity simulator written by a Rust newbie.")
+                      .author("Erik Bjäreholt <erik.bjareholt@gmail.com>")
                       .arg(Arg::with_name("scene")
                                .short("s")
+                               .long("scene")
+                               .help("Specify scene to load")
                                .value_name("SCENE_NAME")
-                               .takes_value(true))
+                               .takes_value(true)
+                               .possible_values(&["orbit", "random"]))
+                      .arg(Arg::with_name("collide-merge")
+                               .long("collide-merge")
+                               .help("When set balls will merge upon collision"))
                       .get_matches();
 
     let mut window: PistonWindow =
@@ -82,10 +89,7 @@ fn main() {
             balls = create_balls_randomly(50, window_size.width, window_size.height),
     }
 
-    // If you want the balls to merge into larger balls upon collision, set to true
-    // Otherwise, set to false
-    // TODO: Make this a commandline argument
-    let merge_on_collision = false;
+    let merge_on_collision = matches.is_present("collide-merge");
 
     while let Some(e) = window.next() {
 
