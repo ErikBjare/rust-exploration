@@ -1,7 +1,8 @@
+extern crate clap;
+
 extern crate ffitest;
 extern crate rand;
 extern crate nalgebra;
-extern crate clap;
 extern crate find_folder;
 
 extern crate piston_window;
@@ -11,6 +12,7 @@ use std::vec::Vec;
 
 use rand::distributions::{Range, IndependentSample};
 use nalgebra::{Vector2, Point2, distance};
+
 use clap::{Arg, App};
 
 use piston_window::{PistonWindow, WindowSettings, Window, clear, rectangle, ellipse, RenderEvent, UpdateEvent, text, Glyphs, Transformed, PressEvent};
@@ -57,10 +59,27 @@ fn create_orbit_system(center_x: f32, center_y: f32) -> Vec<Ball> {
     return balls;
 }
 
+fn create_merging_balls(center_x: f32, center_y: f32) -> Vec<Ball> {
+    let mut balls = create_balls(2);
+
+    balls[0].radius = 10.0;
+    balls[0].rigidbody.mass = 10.0;
+    balls[0].rigidbody.position = Point2::new(center_x-100.0, center_y+50.0);
+    balls[0].rigidbody.apply_force(Vector2::new(50.0, -10.0));
+
+    balls[1].radius = 10.0;
+    balls[1].rigidbody.mass = 10.0;
+    balls[1].rigidbody.position = Point2::new(center_x-100.0, center_y-50.0);
+    balls[1].rigidbody.apply_force(Vector2::new(50.0, 10.0));
+
+    return balls;
+}
+
 struct Game {
     pub window: PistonWindow,
     pub fps_counter: fps_counter::FPSCounter,
     pub balls: Vec<Ball>,
+    pub time_factor: f64,
     pub merge_on_collision: bool,
 }
 
@@ -125,7 +144,6 @@ impl Game {
 
     fn update(&mut self, dt: f64) {
         let mut to_remove = vec![];
-        let time_factor = 50.0;
 
         for i1 in 0..self.balls.len() {
             for i2 in i1+1..self.balls.len() {
@@ -133,7 +151,7 @@ impl Game {
                 let (ball1, slice) = slice.split_first_mut().unwrap();
                 let ball2 = slice.last_mut().unwrap();
 
-                apply_gravity_mutual(&mut ball1.rigidbody, &mut ball2.rigidbody, dt * time_factor);
+                apply_gravity_mutual(&mut ball1.rigidbody, &mut ball2.rigidbody, dt * self.time_factor);
 
                 if self.merge_on_collision {
                     // TODO: All this is very much not-at-all realistic
@@ -149,6 +167,8 @@ impl Game {
                         ball2.radius = ((ball1_area + ball2_area) / 3.14).sqrt();
 
                         ball2.rigidbody.mass += ball1.rigidbody.mass;
+                        // FIXME: This is wrong, to see a demonstration try the merge scene with
+                        // merge on collision turned on.
                         ball2.rigidbody.apply_force(ball1.rigidbody.velocity * ball1.rigidbody.mass);
                     }
                 }
@@ -165,7 +185,7 @@ impl Game {
         }
 
         for ball in self.balls.iter_mut() {
-            ball.rigidbody.apply_velocity(dt * time_factor);
+            ball.rigidbody.apply_velocity(dt * self.time_factor);
         }
     }
 }
@@ -181,7 +201,13 @@ fn main() {
                                .help("Specify scene to load")
                                .value_name("SCENE_NAME")
                                .takes_value(true)
-                               .possible_values(&["orbit", "random"]))
+                               .possible_values(&["orbit", "random", "merge"]))
+                      .arg(Arg::with_name("time-factor")
+                               .short("t")
+                               .long("time-factor")
+                               .help("The speed at which time passes")
+                               .value_name("FACTOR")
+                               .takes_value(true))
                       .arg(Arg::with_name("collide-merge")
                                .long("collide-merge")
                                .help("When set balls will merge upon collision"))
@@ -198,6 +224,8 @@ fn main() {
     match scene {
         "orbit" =>
             balls = create_orbit_system((window_size.width/2) as f32, (window_size.height/2) as f32),
+        "merge" =>
+            balls = create_merging_balls((window_size.width/2) as f32, (window_size.height/2) as f32),
         "random" | _ =>
             // Try values up to:
             //  - 100  (without --release)
@@ -208,13 +236,16 @@ fn main() {
             // EDIT: The reason for the slowness seems to be due to rendering ellipses taking a lot
             // more time than rendering rectangles. Feel free to switch back to rectangle rendering
             // if you seek high-performance.
-            balls = create_balls_randomly(50, window_size.width, window_size.height),
+            balls = create_balls_randomly(100, window_size.width, window_size.height),
     }
+
+    let time_factor = matches.value_of("time-factor").unwrap_or("10.0").parse().unwrap_or(10.0);
 
     let mut game = Game {
         window: window,
         fps_counter: FPSCounter::new(),
         balls: balls,
+        time_factor: time_factor,
         merge_on_collision: matches.is_present("collide-merge"),
     };
     game.mainloop();
