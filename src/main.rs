@@ -1,8 +1,9 @@
-extern crate piston_window;
 extern crate ffitest;
 extern crate rand;
 extern crate nalgebra;
 extern crate clap;
+
+extern crate piston_window;
 
 use std::vec::Vec;
 
@@ -10,7 +11,7 @@ use rand::distributions::{Range, IndependentSample};
 use nalgebra::{Vector2, Point2, distance};
 use clap::{Arg, App};
 
-use piston_window::*;
+use piston_window::{PistonWindow, WindowSettings, Window, clear, ellipse, RenderEvent, UpdateEvent};
 
 use ffitest::astro::*;
 
@@ -47,63 +48,67 @@ fn create_orbit_system(center_x: f32, center_y: f32) -> Vec<Ball> {
     balls[0].color = [0.2, 0.8, 0.2, 1.0];
 
     balls[1].rigidbody.position = Point2::new(center_x + 200.0, center_y);
-    balls[1].rigidbody.apply_force(Vector2::new(0.0, 300.0));
+    balls[1].rigidbody.apply_force(Vector2::new(0.0, 10.0));
     balls[1].radius = 2.0;
 
     return balls;
 }
 
-fn main() {
-    let matches = App::new("gravitysim")
-                      .version("0.1")
-                      .about("A simple gravity simulator written by a Rust newbie.")
-                      .author("Erik Bjäreholt <erik.bjareholt@gmail.com>")
-                      .arg(Arg::with_name("scene")
-                               .short("s")
-                               .long("scene")
-                               .help("Specify scene to load")
-                               .value_name("SCENE_NAME")
-                               .takes_value(true)
-                               .possible_values(&["orbit", "random"]))
-                      .arg(Arg::with_name("collide-merge")
-                               .long("collide-merge")
-                               .help("When set balls will merge upon collision"))
-                      .get_matches();
+struct Game {
+    pub window: PistonWindow,
+    pub balls: Vec<Ball>,
+    pub merge_on_collision: bool,
+}
 
-    let mut window: PistonWindow =
-        WindowSettings::new("GravitySim", [640, 480]).samples(16)
-        .exit_on_esc(true).build().unwrap();
+impl Game {
+    fn mainloop(&mut self) {
+        while let Some(e) = self.window.next() {
+            //println!("{:?}", e);
 
-    let window_size = window.size();
+            e.render(|_| {
+                // TODO: Figure out how to move into self.render (I don't know how to pass the
+                // event into the render method)
+                let ref balls = self.balls;
+                self.window.draw_2d(&e, |c, g| {
+                    clear([0.0; 4], g);
 
-    let mut balls: Vec<Ball>;
-    let scene = matches.value_of("scene").unwrap_or("random");
-    match scene {
-        "orbit" =>
-            balls = create_orbit_system((window_size.width/2) as f32, (window_size.height/2) as f32),
-        "random" | _ =>
-            // Try values up to:
-            //  - 100  (without --release)
-            //  - 1000 (with --release)
-            // These work fine on a 6th gen i7 (Skylake) even with merge_on_collision set to false
-            balls = create_balls_randomly(50, window_size.width, window_size.height),
+                    for ball in balls.iter() {
+                        ellipse(ball.color,
+                                  [
+                                   ball.rigidbody.position.x as f64 - ball.radius as f64,
+                                   ball.rigidbody.position.y as f64 - ball.radius as f64,
+                                   2.0*ball.radius as f64,
+                                   2.0*ball.radius as f64
+                                  ],
+                                  c.transform, g);
+                    }
+                });
+            });
+
+            e.update(|update_args| {
+                self.update(update_args.dt);
+            });
+        }
     }
 
-    let merge_on_collision = matches.is_present("collide-merge");
+    /*
+    fn render(&mut self, e: &Event) {
+    }
+    */
 
-    while let Some(e) = window.next() {
-
+    fn update(&mut self, dt: f64) {
         let mut to_remove = vec![];
+        let time_factor = 10.0;
 
-        for i1 in 0..balls.len() {
-            for i2 in i1+1..balls.len() {
-                let slice = &mut balls[i1..i2+1];
+        for i1 in 0..self.balls.len() {
+            for i2 in i1+1..self.balls.len() {
+                let slice = &mut self.balls[i1..i2+1];
                 let (ball1, slice) = slice.split_first_mut().unwrap();
                 let ball2 = slice.last_mut().unwrap();
 
-                apply_gravity_mutual(&mut ball1.rigidbody, &mut ball2.rigidbody);
+                apply_gravity_mutual(&mut ball1.rigidbody, &mut ball2.rigidbody, dt * time_factor);
 
-                if merge_on_collision {
+                if self.merge_on_collision {
                     // TODO: All this is very much not-at-all realistic
                     // TODO: Merge-logic should probably be moved to Ball.add() or similar
                     // TODO: We might want to make merging step-by-step (as in the game Osmos)
@@ -127,29 +132,57 @@ fn main() {
         if to_remove.len() > 0 {
             println!("Removing {} balls", to_remove.len());
             for i in to_remove.iter().rev() {
-                balls.remove(*i);
+                self.balls.remove(*i);
                 println!("Removed ball #{}", i)
             }
         }
 
-        for ball in balls.iter_mut() {
-            ball.rigidbody.apply_velocity();
+        for ball in self.balls.iter_mut() {
+            ball.rigidbody.apply_velocity(dt * time_factor);
         }
-
-        window.draw_2d(&e, |c, g| {
-            clear([0.0; 4], g);
-
-            for ball in &balls {
-                //println!("Rendering ball {:?}", ball);
-                ellipse(ball.color,
-                          [
-                           ball.rigidbody.position.x as f64 - ball.radius as f64,
-                           ball.rigidbody.position.y as f64 - ball.radius as f64,
-                           2.0*ball.radius as f64,
-                           2.0*ball.radius as f64
-                          ],
-                          c.transform, g);
-            }
-        });
     }
+}
+
+fn main() {
+    let matches = App::new("gravitysim")
+                      .version("0.1")
+                      .about("A simple gravity simulator written by a Rust newbie.")
+                      .author("Erik Bjäreholt <erik.bjareholt@gmail.com>")
+                      .arg(Arg::with_name("scene")
+                               .short("s")
+                               .long("scene")
+                               .help("Specify scene to load")
+                               .value_name("SCENE_NAME")
+                               .takes_value(true)
+                               .possible_values(&["orbit", "random"]))
+                      .arg(Arg::with_name("collide-merge")
+                               .long("collide-merge")
+                               .help("When set balls will merge upon collision"))
+                      .get_matches();
+
+    let window: PistonWindow =
+        WindowSettings::new("GravitySim", [640, 480]).samples(16)
+        .exit_on_esc(true).build().unwrap();
+
+    let window_size = window.size();
+
+    let balls: Vec<Ball>;
+    let scene = matches.value_of("scene").unwrap_or("random");
+    match scene {
+        "orbit" =>
+            balls = create_orbit_system((window_size.width/2) as f32, (window_size.height/2) as f32),
+        "random" | _ =>
+            // Try values up to:
+            //  - 100  (without --release)
+            //  - 1000 (with --release)
+            // These work fine on a 6th gen i7 (Skylake) even with merge_on_collision set to false
+            balls = create_balls_randomly(50, window_size.width, window_size.height),
+    }
+
+    let mut game = Game {
+        window: window,
+        balls: balls,
+        merge_on_collision: matches.is_present("collide-merge"),
+    };
+    game.mainloop();
 }

@@ -17,12 +17,12 @@ impl RigidBody {
         };
     }
 
-    pub fn apply_velocity(&mut self) {
-        self.position = self.position + self.velocity;
+    pub fn apply_velocity(&mut self, dt: f64) {
+        self.position = self.position + self.velocity * dt as f32;
     }
 
     pub fn apply_force(&mut self, force: Vector2<f32>) {
-        self.velocity += 0.001 * force / self.mass;
+        self.velocity += force / self.mass;
     }
 }
 
@@ -44,13 +44,13 @@ impl Ball {
     }
 }
 
-pub fn apply_gravity_mutual(b1: &mut RigidBody, b2: &mut RigidBody) {
+pub fn apply_gravity_mutual(b1: &mut RigidBody, b2: &mut RigidBody, dt: f64) {
     let diff = b1.position - b2.position;
     let norm = diff.normalize();
     let dist = b1.position.distance(&b2.position);
     let force = norm * b1.mass * b2.mass / (dist + 20.0);
-    b1.apply_force(-force);
-    b2.apply_force(force);
+    b1.apply_force(-force * dt as f32);
+    b2.apply_force(force * dt as f32);
 }
 
 #[no_mangle]
@@ -71,10 +71,10 @@ mod tests {
         b2.position = b2.position + Vector2 { x: 0.0, y: 5.0 };
         println!("{:?}", b2);
 
-        apply_gravity_mutual(&mut b1, &mut b2);
+        apply_gravity_mutual(&mut b1, &mut b2, 1.0);
 
-        b1.apply_velocity();
-        b2.apply_velocity();
+        b1.apply_velocity(1.0);
+        b2.apply_velocity(1.0);
 
         println!("{:?}", b1);
         println!("{:?}", b2);
