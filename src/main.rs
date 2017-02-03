@@ -1,5 +1,3 @@
-#![feature(slice_patterns)]
-
 extern crate piston_window;
 extern crate ffitest;
 extern crate rand;
