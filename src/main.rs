@@ -7,8 +7,8 @@ extern crate clap;
 use std::vec::Vec;
 
 use rand::distributions::{Range, IndependentSample};
-use nalgebra::{Vector2, Point2};
-use clap::{Arg, App, SubCommand};
+use nalgebra::{Vector2, Point2, distance};
+use clap::{Arg, App};
 
 use piston_window::*;
 
@@ -68,7 +68,6 @@ fn main() {
         .exit_on_esc(true).build().unwrap();
 
     let window_size = window.size();
-    println!("{:?}", window_size);
 
     let mut balls: Vec<Ball>;
     let scene = matches.value_of("scene").unwrap_or("random");
@@ -105,8 +104,8 @@ fn main() {
                     // TODO: Merge-logic should probably be moved to Ball.add() or similar
                     // TODO: We might want to make merging step-by-step (as in the game Osmos)
                     // TODO: We might want to set the merged ball position to a weighted average of the two
-                    if(nalgebra::distance(&ball1.rigidbody.position, &ball2.rigidbody.position) < ball1.radius + ball2.radius
-                       && !to_remove.contains(&i1)) {
+                    if distance(&ball1.rigidbody.position, &ball2.rigidbody.position) < ball1.radius + ball2.radius
+                    && !to_remove.contains(&i1) {
                         to_remove.push(i1);
 
                         let ball1_area = ball1.radius.powi(2) * 3.14;
