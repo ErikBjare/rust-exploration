@@ -5,7 +5,7 @@ def using_ctypes():
 
     from ctypes import cdll
 
-    lib = cdll.LoadLibrary("target/release/libffitest.so")
+    lib = cdll.LoadLibrary("../target/release/libffitest.so")
 
     print("[py] Printing...")
     lib.print_something()
@@ -63,7 +63,7 @@ def using_cffi():
 
         Body create_body();
     """)
-    lib = ffi.dlopen("target/release/libffitest.so")
+    lib = ffi.dlopen("../target/release/libffitest.so")
 
     print("[py] Print from Rust")
     lib.print_something()

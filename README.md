@@ -35,5 +35,6 @@ cargo build --release
 Call the library from Python:
 
 ```
+cd misc
 python3 call_with_python.py
 ```
