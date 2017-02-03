@@ -1,5 +1,5 @@
 [package]
-name = "ffi-test"
+name = "rust-exploration"
 version = "0.1.0"
 authors = ["Erik Bjäreholt <erik.bjareholt@gmail.com>"]
 
@@ -8,7 +8,7 @@ name = "ffitest"
 crate-type = ["rlib", "dylib"]
 
 [[bin]]
-name = "ffitest-main"
+name = "gravitysim"
 path = "src/main.rs"
 
 [dependencies]

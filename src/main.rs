@@ -28,9 +28,13 @@ fn main() {
     let window_size = window.size();
     println!("{:?}", window_size);
 
-    let mut balls = create_balls(5);
+    // Try values up to:
+    //  - 100  (without --release)
+    //  - 1000 (with --release)
+    // These work fine on a 6th gen i7 (Skylake)
+    let mut balls = create_balls(50);
     {
-        let between = Range::new(0.0 as f32, 1.0 as f32);
+        let between = Range::new(0.2 as f32, 0.8 as f32);
         let mut rng = rand::thread_rng();
         for ball in balls.iter_mut() {
             ball.rigidbody.position.x = between.ind_sample(&mut rng) * window_size.width as f32;
