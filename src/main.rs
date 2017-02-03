@@ -2,8 +2,10 @@ extern crate ffitest;
 extern crate rand;
 extern crate nalgebra;
 extern crate clap;
+extern crate find_folder;
 
 extern crate piston_window;
+extern crate fps_counter;
 
 use std::vec::Vec;
 
@@ -11,7 +13,8 @@ use rand::distributions::{Range, IndependentSample};
 use nalgebra::{Vector2, Point2, distance};
 use clap::{Arg, App};
 
-use piston_window::{PistonWindow, WindowSettings, Window, clear, ellipse, RenderEvent, UpdateEvent};
+use piston_window::{PistonWindow, WindowSettings, Window, clear, rectangle, ellipse, RenderEvent, UpdateEvent, text, Glyphs, Transformed, PressEvent};
+use fps_counter::FPSCounter;
 
 use ffitest::astro::*;
 
@@ -56,12 +59,14 @@ fn create_orbit_system(center_x: f32, center_y: f32) -> Vec<Ball> {
 
 struct Game {
     pub window: PistonWindow,
+    pub fps_counter: fps_counter::FPSCounter,
     pub balls: Vec<Ball>,
     pub merge_on_collision: bool,
 }
 
 impl Game {
     fn mainloop(&mut self) {
+
         while let Some(e) = self.window.next() {
             //println!("{:?}", e);
 
@@ -69,24 +74,46 @@ impl Game {
                 // TODO: Figure out how to move into self.render (I don't know how to pass the
                 // event into the render method)
                 let ref balls = self.balls;
+                let factory = self.window.factory.clone();
+                let fps = self.fps_counter.tick();
+
                 self.window.draw_2d(&e, |c, g| {
                     clear([0.0; 4], g);
 
                     for ball in balls.iter() {
-                        ellipse(ball.color,
-                                  [
-                                   ball.rigidbody.position.x as f64 - ball.radius as f64,
-                                   ball.rigidbody.position.y as f64 - ball.radius as f64,
-                                   2.0*ball.radius as f64,
-                                   2.0*ball.radius as f64
-                                  ],
-                                  c.transform, g);
+                        let dims = [ball.rigidbody.position.x as f64 - ball.radius as f64,
+                                    ball.rigidbody.position.y as f64 - ball.radius as f64,
+                                    2.0*ball.radius as f64,
+                                    2.0*ball.radius as f64];
+                        if ball.radius > 2.0 {
+                            ellipse(ball.color, dims, c.transform, g);
+                        } else {
+                            rectangle(ball.color, dims, c.transform, g);
+                        }
                     }
+
+
+                    let assets = find_folder::Search::ParentsThenKids(3, 3)
+                        .for_folder("assets").unwrap();
+                    let ref font = assets.join("FiraSans-Regular.ttf");
+                    let mut glyphs = Glyphs::new(font, factory).unwrap();
+
+					let transform = c.transform.trans(10.0, 42.0);
+                    text::Text::new_color([1.0, 1.0, 1.0, 1.0], 32).draw(
+                        format!("FPS: {}", fps).as_str(),
+                        &mut glyphs,
+                        &c.draw_state,
+                        transform, g
+                    );
                 });
             });
 
             e.update(|update_args| {
                 self.update(update_args.dt);
+            });
+
+            e.press(|button| {
+                println!("{:?}", button);
             });
         }
     }
@@ -98,7 +125,7 @@ impl Game {
 
     fn update(&mut self, dt: f64) {
         let mut to_remove = vec![];
-        let time_factor = 10.0;
+        let time_factor = 50.0;
 
         for i1 in 0..self.balls.len() {
             for i2 in i1+1..self.balls.len() {
@@ -176,11 +203,17 @@ fn main() {
             //  - 100  (without --release)
             //  - 1000 (with --release)
             // These work fine on a 6th gen i7 (Skylake) even with merge_on_collision set to false
+            // EDIT: These no longer work as well as they used to for unknown reasons, try half of
+            // these values instead.
+            // EDIT: The reason for the slowness seems to be due to rendering ellipses taking a lot
+            // more time than rendering rectangles. Feel free to switch back to rectangle rendering
+            // if you seek high-performance.
             balls = create_balls_randomly(50, window_size.width, window_size.height),
     }
 
     let mut game = Game {
         window: window,
+        fps_counter: FPSCounter::new(),
         balls: balls,
         merge_on_collision: matches.is_present("collide-merge"),
     };
