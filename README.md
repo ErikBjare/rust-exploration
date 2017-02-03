@@ -8,6 +8,22 @@ My own exercises in:
 
 # Usage
 
+This repo currently contains two experiments.
+
+## Gravitysim
+
+Just run with:
+
+```
+cargo run
+```
+
+You can see all the available command line arguments with:
+
+```
+cargo run -- --help
+```
+
 ## FFI part
 
 Compile the Rust code:
@@ -20,12 +36,4 @@ Call the library from Python:
 
 ```
 python3 call_with_python.py
-```
-
-## Gravitysim
-
-Just run with:
-
-```
-cargo run
 ```
