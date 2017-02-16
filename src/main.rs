@@ -1,3 +1,7 @@
+// An experiment in reducing filesize by using the system allocator instead of jemalloc
+//#![feature(alloc_system)]
+//extern crate alloc_system;
+
 extern crate clap;
 
 extern crate ffitest;

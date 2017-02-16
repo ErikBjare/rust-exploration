@@ -11,6 +11,12 @@ crate-type = ["rlib", "dylib"]
 name = "gravitysim"
 path = "src/main.rs"
 
+# Hacks for smaller exec sizes documented here:
+# https://lifthrasiir.github.io/rustlog/why-is-a-rust-executable-large.html
+#[profile.release]
+#lto = true
+#panic = 'abort'
+
 [dependencies]
 libc = "0.2.0"
 rand = "0.3"

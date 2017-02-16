@@ -38,3 +38,13 @@ Call the library from Python:
 cd misc
 python3 call_with_python.py
 ```
+
+# Decreasing executable size
+
+Use `strip` to remove debug symbols (almost halves the size of the executable!):
+
+```
+strip target/release/gravitysim
+```
+
+The smallest I managed to get the binary down to was ~1.6MB. This with the system allocator, `lto=true`, `panic='abort'` and use of `strip`.
