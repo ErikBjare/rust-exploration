@@ -166,10 +166,10 @@ impl Game {
                         let ball2_area = ball2.radius.powi(2) * 3.14;
                         ball2.radius = ((ball1_area + ball2_area) / 3.14).sqrt();
 
+                        ball2.rigidbody.velocity = (ball1.rigidbody.velocity * ball1.rigidbody.mass
+                                                    + ball2.rigidbody.velocity * ball1.rigidbody.mass)
+                                                   / (ball1.rigidbody.mass + ball2.rigidbody.mass);
                         ball2.rigidbody.mass += ball1.rigidbody.mass;
-                        // FIXME: This is wrong, to see a demonstration try the merge scene with
-                        // merge on collision turned on.
-                        ball2.rigidbody.apply_force(ball1.rigidbody.velocity * ball1.rigidbody.mass);
                     }
                 }
             }
@@ -214,7 +214,7 @@ fn main() {
                       .get_matches();
 
     let window: PistonWindow =
-        WindowSettings::new("GravitySim", [640, 480]).samples(16)
+        WindowSettings::new("GravitySim", [800, 600]).samples(16)
         .exit_on_esc(true).build().unwrap();
 
     let window_size = window.size();
